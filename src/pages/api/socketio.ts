@@ -1,0 +1,266 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+import { Server as SocketIOServer, Socket } from "socket.io";
+import type { Server as HTTPServer } from "http";
+import { parse as parseCookie } from "cookie";
+import jwt from "jsonwebtoken";
+import { JWT_SECRET, ACCESS_TOKEN_NAME } from "@/lib/authUtils";
+import type {
+  User,
+  SocketOfferData,
+  SocketAnswerData,
+  SocketIceCandidateData,
+  SocketWebRTCStateData,
+} from "@/types";
+import { logger } from "@/lib/logger";
+
+interface NextApiResponseWithSocket extends NextApiResponse {
+  socket: NextApiRequest["socket"] & {
+    server: HTTPServer & {
+      io?: SocketIOServer;
+    };
+  };
+}
+
+interface AuthenticatedSocket extends Socket {
+  user?: User;
+}
+
+const SOCKET_PATH = process.env.NEXT_PUBLIC_SOCKET_PATH || "/api/socketio";
+
+export const config = {
+  api: {
+    bodyParser: false,
+  },
+};
+
+export default function socketIOHandler(
+  req: NextApiRequest,
+  res: NextApiResponseWithSocket
+) {
+  if (!res.socket.server.io) {
+    logger.info("SERVER_SOCKET", "*Initializing Socket.IO server*");
+    const io = new SocketIOServer(res.socket.server, {
+      path: SOCKET_PATH,
+      addTrailingSlash: false,
+      cors: {
+        origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+        methods: ["GET", "POST"],
+        credentials: true,
+      },
+    });
+
+    io.use((socket: Socket, next) => {
+      const cookies = socket.handshake.headers.cookie;
+      const socketId = socket.id;
+      if (!cookies) {
+        logger.auth("Socket Auth Failed: No cookies", {
+          socket_id: socketId,
+          source: "SERVER_SOCKET",
+        });
+        return next(new Error("Authentication error: No cookies provided."));
+      }
+
+      const parsedCookies = parseCookie(cookies);
+      const token = parsedCookies[ACCESS_TOKEN_NAME];
+
+      if (!token) {
+        logger.auth("Socket Auth Failed: No access token", {
+          socket_id: socketId,
+          source: "SERVER_SOCKET",
+        });
+        return next(new Error("Authentication error: Access token missing."));
+      }
+
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET) as User & {
+          iat: number;
+          exp: number;
+        };
+        if (!decoded.userId || !decoded.email) {
+          logger.auth("Socket Auth Failed: Invalid token payload", {
+            socket_id: socketId,
+            source: "SERVER_SOCKET",
+            payload: { reason: "Missing userId or email" },
+          });
+          return next(
+            new Error("Authentication error: Invalid token payload.")
+          );
+        }
+        (socket as AuthenticatedSocket).user = {
+          userId: decoded.userId,
+          email: decoded.email,
+        };
+        logger.auth("Socket Authenticated", {
+          user_email: decoded.email,
+          user_id_from_jwt: decoded.userId,
+          socket_id: socketId,
+          source: "SERVER_SOCKET",
+        });
+        next();
+      } catch (err: any) {
+        logger.auth("Socket Auth Failed: Token verification error", {
+          socket_id: socketId,
+          source: "SERVER_SOCKET",
+          payload: { error: err.message },
+        });
+        return next(
+          new Error("Authentication error: Invalid or expired token.")
+        );
+      }
+    });
+
+    io.on("connection", (socket: Socket) => {
+      const authSocket = socket as AuthenticatedSocket;
+      const user = authSocket.user;
+
+      if (!user) {
+        logger.error(
+          "SERVER_SOCKET",
+          `Socket ${socket.id} connected without user context. Disconnecting.`,
+          { socket_id: socket.id }
+        );
+        socket.disconnect(true);
+        return;
+      }
+      logger.info("SERVER_SOCKET", `User connected to Socket.IO`, {
+        user_email: user.email,
+        user_id_from_jwt: user.userId,
+        socket_id: socket.id,
+      });
+
+      socket.on("join-room", (roomId: string) => {
+        socket.join(roomId);
+        logger.roomEvent("SERVER_SOCKET", `User joined room`, {
+          user_email: user.email,
+          user_id_from_jwt: user.userId,
+          socket_id: socket.id,
+          room_id: roomId,
+        });
+        socket
+          .to(roomId)
+          .emit("user-joined", { userId: socket.id, email: user.email });
+      });
+
+      socket.on("offer", (data: SocketOfferData) => {
+        logger.signaling(
+          "SERVER_SOCKET",
+          `Relaying offer to ${data.toUserId}`,
+          {
+            user_email: user.email,
+            socket_id: socket.id,
+            room_id: Array.from(socket.rooms)[1], // Assuming second room is the actual room ID
+            peer_socket_id: data.toUserId,
+            payload: { offerSize: JSON.stringify(data.offer).length },
+          }
+        );
+        socket
+          .to(data.toUserId)
+          .emit("offer", { offer: data.offer, fromUserId: socket.id });
+      });
+
+      socket.on("answer", (data: SocketAnswerData) => {
+        logger.signaling(
+          "SERVER_SOCKET",
+          `Relaying answer to ${data.toUserId}`,
+          {
+            user_email: user.email,
+            socket_id: socket.id,
+            room_id: Array.from(socket.rooms)[1],
+            peer_socket_id: data.toUserId,
+            payload: { answerSize: JSON.stringify(data.answer).length },
+          }
+        );
+        socket
+          .to(data.toUserId)
+          .emit("answer", { answer: data.answer, fromUserId: socket.id });
+      });
+
+      socket.on("ice-candidate", (data: SocketIceCandidateData) => {
+        // These can be very noisy, log selectively or summarize if needed
+        // logger.signaling('SERVER_SOCKET', `Relaying ICE candidate to ${data.toUserId}`, {
+        //     user_email: user.email, socket_id: socket.id, room_id: Array.from(socket.rooms)[1],
+        //     peer_socket_id: data.toUserId, payload: data.candidate ? { candidateType: data.candidate.type, sdpMid: data.candidate.sdpMid } : {candidate: null}
+        // });
+        socket
+          .to(data.toUserId)
+          .emit("ice-candidate", {
+            candidate: data.candidate,
+            fromUserId: socket.id,
+          });
+      });
+
+      socket.on("webrtc-state-change", (data: SocketWebRTCStateData) => {
+        logger.webrtcEvent(
+          "SERVER_SOCKET",
+          `Client WebRTC state change for peer ${data.peerSocketId}`,
+          {
+            user_email: user.email,
+            socket_id: socket.id,
+            room_id: Array.from(socket.rooms)[1],
+            peer_socket_id: data.peerSocketId,
+            webrtc_ice_state: data.iceState,
+            webrtc_signaling_state: data.signalingState,
+            source: "CLIENT_APP", // Marking that this event originated from client
+          }
+        );
+      });
+
+      socket.on("end-call", (data: { toUserId?: string }) => {
+        const roomIdArray = Array.from(socket.rooms);
+        const currentRoom = roomIdArray.find((r) => r !== socket.id);
+        logger.signaling("SERVER_SOCKET", `Relaying end-call signal`, {
+          user_email: user.email,
+          socket_id: socket.id,
+          room_id: currentRoom,
+          peer_socket_id: data.toUserId,
+          message: `Call end signal from ${user.email} (${
+            socket.id
+          }). Target: ${data.toUserId || "room " + currentRoom}`,
+        });
+        if (data.toUserId) {
+          socket
+            .to(data.toUserId)
+            .emit("call-ended", { fromUserId: socket.id });
+        } else if (currentRoom) {
+          socket.to(currentRoom).emit("call-ended", { fromUserId: socket.id });
+        }
+      });
+
+      socket.on("disconnecting", () => {
+        const disconnectingUser = (socket as AuthenticatedSocket).user;
+        const logDetails = {
+          user_email: disconnectingUser?.email,
+          user_id_from_jwt: disconnectingUser?.userId,
+          socket_id: socket.id,
+          source: "SERVER_SOCKET" as const,
+        };
+        logger.info("SERVER_SOCKET", `User disconnecting`, logDetails);
+        socket.rooms.forEach((room) => {
+          if (room !== socket.id) {
+            logger.roomEvent(
+              "SERVER_SOCKET",
+              `User left room (disconnecting)`,
+              { ...logDetails, room_id: room }
+            );
+            socket.to(room).emit("user-left", socket.id);
+          }
+        });
+      });
+
+      socket.on("disconnect", () => {
+        const disconnectedUser = (socket as AuthenticatedSocket).user;
+        logger.info("SERVER_SOCKET", `User disconnected`, {
+          user_email: disconnectedUser?.email,
+          user_id_from_jwt: disconnectedUser?.userId,
+          socket_id: socket.id,
+          source: "SERVER_SOCKET",
+        });
+      });
+    });
+
+    res.socket.server.io = io;
+  } else {
+    // logger.info('SERVER_SOCKET', 'Socket.IO server already running');
+  }
+  res.end();
+}
