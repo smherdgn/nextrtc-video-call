@@ -56,6 +56,7 @@ export default function socketIOHandler(
         logger.auth("Socket Auth Failed: No cookies", {
           socket_id: socketId,
           source: "SERVER_SOCKET",
+          message: null,
         });
         return next(new Error("Authentication error: No cookies provided."));
       }
@@ -67,6 +68,7 @@ export default function socketIOHandler(
         logger.auth("Socket Auth Failed: No access token", {
           socket_id: socketId,
           source: "SERVER_SOCKET",
+          message: null,
         });
         return next(new Error("Authentication error: Access token missing."));
       }
@@ -81,6 +83,7 @@ export default function socketIOHandler(
             socket_id: socketId,
             source: "SERVER_SOCKET",
             payload: { reason: "Missing userId or email" },
+            message: null,
           });
           return next(
             new Error("Authentication error: Invalid token payload.")
@@ -95,6 +98,7 @@ export default function socketIOHandler(
           user_id_from_jwt: decoded.userId,
           socket_id: socketId,
           source: "SERVER_SOCKET",
+          message: null,
         });
         next();
       } catch (err: any) {
@@ -102,6 +106,7 @@ export default function socketIOHandler(
           socket_id: socketId,
           source: "SERVER_SOCKET",
           payload: { error: err.message },
+          message: null,
         });
         return next(
           new Error("Authentication error: Invalid or expired token.")
@@ -126,6 +131,7 @@ export default function socketIOHandler(
         user_email: user.email,
         user_id_from_jwt: user.userId,
         socket_id: socket.id,
+        message: null,
       });
 
       socket.on("join-room", (roomId: string) => {
@@ -135,6 +141,7 @@ export default function socketIOHandler(
           user_id_from_jwt: user.userId,
           socket_id: socket.id,
           room_id: roomId,
+          message: null,
         });
         socket
           .to(roomId)
@@ -151,6 +158,7 @@ export default function socketIOHandler(
             room_id: Array.from(socket.rooms)[1], // Assuming second room is the actual room ID
             peer_socket_id: data.toUserId,
             payload: { offerSize: JSON.stringify(data.offer).length },
+            message: null,
           }
         );
         socket
@@ -168,6 +176,7 @@ export default function socketIOHandler(
             room_id: Array.from(socket.rooms)[1],
             peer_socket_id: data.toUserId,
             payload: { answerSize: JSON.stringify(data.answer).length },
+            message: null,
           }
         );
         socket
@@ -181,12 +190,10 @@ export default function socketIOHandler(
         //     user_email: user.email, socket_id: socket.id, room_id: Array.from(socket.rooms)[1],
         //     peer_socket_id: data.toUserId, payload: data.candidate ? { candidateType: data.candidate.type, sdpMid: data.candidate.sdpMid } : {candidate: null}
         // });
-        socket
-          .to(data.toUserId)
-          .emit("ice-candidate", {
-            candidate: data.candidate,
-            fromUserId: socket.id,
-          });
+        socket.to(data.toUserId).emit("ice-candidate", {
+          candidate: data.candidate,
+          fromUserId: socket.id,
+        });
       });
 
       socket.on("webrtc-state-change", (data: SocketWebRTCStateData) => {
@@ -200,7 +207,8 @@ export default function socketIOHandler(
             peer_socket_id: data.peerSocketId,
             webrtc_ice_state: data.iceState,
             webrtc_signaling_state: data.signalingState,
-            source: "CLIENT_APP", // Marking that this event originated from client
+            source: "CLIENT_APP",
+            message: null,
           }
         );
       });
@@ -233,6 +241,7 @@ export default function socketIOHandler(
           user_id_from_jwt: disconnectingUser?.userId,
           socket_id: socket.id,
           source: "SERVER_SOCKET" as const,
+          message: null,
         };
         logger.info("SERVER_SOCKET", `User disconnecting`, logDetails);
         socket.rooms.forEach((room) => {
@@ -240,7 +249,11 @@ export default function socketIOHandler(
             logger.roomEvent(
               "SERVER_SOCKET",
               `User left room (disconnecting)`,
-              { ...logDetails, room_id: room }
+              {
+                ...logDetails,
+                room_id: room,
+                message: null,
+              }
             );
             socket.to(room).emit("user-left", socket.id);
           }
@@ -254,6 +267,7 @@ export default function socketIOHandler(
           user_id_from_jwt: disconnectedUser?.userId,
           socket_id: socket.id,
           source: "SERVER_SOCKET",
+          message: null,
         });
       });
     });

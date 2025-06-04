@@ -21,6 +21,7 @@ export default async function handler(
   if (!token) {
     logger.adminAccess("Admin logs access denied: No token", {
       source: "SERVER_API",
+      message: null,
     });
     return res.status(401).json({ message: "Authentication required" });
   }
@@ -35,6 +36,7 @@ export default async function handler(
         user_email: decoded.email,
         user_id_from_jwt: decoded.userId,
         source: "SERVER_API",
+        message: null,
       });
       return res
         .status(403)
@@ -46,6 +48,7 @@ export default async function handler(
       user_email: decoded.email,
       user_id_from_jwt: decoded.userId,
       source: "SERVER_API",
+      message: null,
     });
 
     const {
@@ -99,6 +102,7 @@ export default async function handler(
       logger.error("SERVER_API", "Error fetching logs from Supabase", error, {
         user_email: decoded.email,
         user_id_from_jwt: decoded.userId,
+        message: null,
       });
       return res
         .status(500)
@@ -116,6 +120,7 @@ export default async function handler(
     logger.adminAccess("Admin logs access denied: Token verification failed", {
       source: "SERVER_API",
       payload: { error: (err as Error).message },
+      message: null,
     });
     return res.status(401).json({ message: "Invalid or expired token" });
   }
