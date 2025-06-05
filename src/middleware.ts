@@ -38,7 +38,16 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const response = NextResponse.next();
 
-  const publicPaths = ["/login", "/api/login", "/api/refresh", "/api/socketio"];
+  const publicPaths = [
+    "/login",
+    "/api/login",
+    "/api/refresh",
+    "/api/socketio",
+    "/api/consent",
+    "/api/version",
+    "/api/webrtc-config",
+    "/api/health",
+  ];
   const isAdminPath =
     pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
   const isPublicPath =
