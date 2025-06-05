@@ -84,8 +84,11 @@ export default function RoomEntryPage() {
         </form>
       </div>
        <p className="mt-8 text-sm text-text-muted">
-          Enter any Room ID. If it doesn't exist, a new room will be created.
-        </p>
+         Enter any Room ID. If it doesn't exist, a new room will be created.
+       </p>
+       <p className="mt-2 text-sm">
+          <a href="/status" className="text-primary hover:underline">Check System Status</a>
+       </p>
     </div>
   );
 }
