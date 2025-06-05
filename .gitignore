@@ -90,3 +90,10 @@ export/
 package-lock.json
 yarn.lock
 pnpm-lock.yaml
+
+# Uploaded files
+uploads/
+logs/
+!uploads/.gitkeep
+!logs/.gitkeep
+
