@@ -110,8 +110,11 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
-         <p className="text-center text-xs text-text-muted">
-          Demo credentials: user@example.com / password123
+        <p className="text-center text-xs text-text-muted">
+         Demo credentials: user@example.com / password123
+        </p>
+        <p className="text-center text-xs mt-2">
+          <a href="/status" className="text-primary hover:underline">System Status</a>
         </p>
       </div>
     </div>
