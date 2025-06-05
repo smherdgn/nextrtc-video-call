@@ -22,11 +22,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const form = formidable({ multiples: false });
-  form.parse(req, async (err: any, fields, files) => {
+  form.parse(req, async (err: any, _fields: any, files: any) => {
     if (err) {
       return res.status(400).json({ message: 'Invalid form data' });
     }
-    const file = files.file as formidable.File | undefined;
+    const file = (files as any).file as any;
     if (!file) {
       return res.status(400).json({ message: 'No file' });
     }
