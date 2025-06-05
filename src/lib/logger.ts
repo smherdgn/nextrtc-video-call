@@ -67,7 +67,7 @@ export const logger = {
       log_type: "API_CALL",
       source: "SERVER_API",
       message,
-      ...details,
+      ...(details ?? {}),
     });
   },
   signaling: (source: LogSource, message: string, details?: LogDetails) => {
