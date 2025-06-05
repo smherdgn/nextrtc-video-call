@@ -104,7 +104,7 @@ export interface LogEntry {
   socket_id?: string | null;
   room_id?: string | null;
   source: LogSource;
-  message: string | null;
+  message?: string | null;
   payload?: Record<string, any> | null;
   peer_socket_id?: string | null;
   webrtc_ice_state?: string | null;

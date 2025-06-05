@@ -33,10 +33,7 @@ export const config = {
   },
 };
 
-export default function socketIOHandler(
-  req: NextApiRequest,
-  res: NextApiResponseWithSocket
-) {
+export default function socketIOHandler(res: NextApiResponseWithSocket) {
   if (!res.socket.server.io) {
     logger.info("SERVER_SOCKET", "*Initializing Socket.IO server*");
     const io = new SocketIOServer(res.socket.server, {
