@@ -4,12 +4,15 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ message: 'Method Not Allowed' });
   }
+ 
    return res.status(200).json({
-    iceServers: [
+     iceServers: [
       {
         urls: ['turns:secure.example.com:5349'],
         username: 'user',
         credential: 'secret',
+       },
+ 
  
   const turnUrls = (process.env.TURN_URLS || 'turns:secure.example.com:5349')
     .split(',')
@@ -26,7 +29,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
         username: turnUsername,
         credential: turnCredential,
        },
-    ],
+     ],
     iceTransportPolicy: 'relay',
   });
 }
