@@ -96,4 +96,6 @@ uploads/
 logs/
 !uploads/.gitkeep
 !logs/.gitkeep
+public/uploads/
+!public/uploads/.gitkeep
 
