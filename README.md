@@ -1,7 +1,7 @@
 
 # NextRTC Video Call Application
 
-This is a secure WebRTC video calling application built with Next.js, Socket.io, and JWT authentication.
+This is a secure WebRTC video calling application built with Next.js, Socket.io, and JWT authentication. It now exposes several mobile-friendly API routes and logging utilities for a React Native client.
 
 ## Features
 
@@ -16,6 +16,14 @@ This is a secure WebRTC video calling application built with Next.js, Socket.io,
 - Mute/unmute audio, enable/disable video controls
 - Logout functionality
 - Toast notifications for key events
+- Consent management via `/api/consent`
+- TURN-only ICE configuration at `/api/webrtc-config`
+- Mobile version check at `/api/version`
+- Secure file uploads through `/api/upload`
+- Health check endpoint `/api/health`
+- Rate limiting on login and socket connections
+- Additional Socket.IO events: `chat-message`, `file-meta`, and `reconnect`
+- Server-side logging via `logEvent` with optional Sentry support
 
 ## Tech Stack
 
@@ -45,8 +53,16 @@ This is a secure WebRTC video calling application built with Next.js, Socket.io,
 - `src/types/`: TypeScript type definitions
 - `src/middleware.ts`: Next.js middleware for route protection
 - `public/`: Static assets (if any)
-- `.env.local.example`: Example environment variables
+- `.env.example`: Example environment variables
 - `tailwind.config.js`, `postcss.config.js`: Tailwind CSS configuration
+
+## API Endpoints
+
+- `POST /api/consent` – record user consent flags with hashed user ID and IP
+- `GET /api/webrtc-config` – return TURN-only ICE server details
+- `GET /api/version` – return the latest mobile app version
+- `GET /api/health` – simple health check for uptime monitoring
+- `POST /api/upload` – authenticated file uploads (PDF, PNG, JPEG) stored in `uploads/`
 
 ## Setup and Installation
 
@@ -62,15 +78,20 @@ This is a secure WebRTC video calling application built with Next.js, Socket.io,
     This will install packages like `next`, `react`, `socket.io`, `jsonwebtoken`, `tailwindcss`, etc., as defined in `package.json`.
 
 3.  **Set up environment variables:**
-    Create a `.env.local` file in the project root by copying `.env.local.example`.
+    Create a `.env.local` file in the project root by copying `.env.example`.
     ```bash
-    cp .env.local.example .env.local
+    cp .env.example .env.local
     ```
     Open `.env.local` and set the following variables:
     ```env
     JWT_SECRET="your-super-secure-and-long-jwt-secret-key-at-least-32-characters"
     NEXT_PUBLIC_APP_URL="http://localhost:3000" # Your local development URL
     NEXT_PUBLIC_SOCKET_PATH="/api/socketio" # Should match server setup
+    NEXT_PUBLIC_ADMIN_EMAIL=""           # Optional admin UI access
+    NEXT_PUBLIC_SUPABASE_URL=""         # Optional Supabase logging
+    NEXT_PUBLIC_SUPABASE_ANON_KEY=""
+    SUPABASE_SERVICE_ROLE_KEY=""
+    SENTRY_DSN=""                        # Optional error reporting
     ```
     Replace `"your-super-secure-and-long-jwt-secret-key-at-least-32-characters"` with a strong, unique secret key.
 
@@ -106,11 +127,13 @@ This is a secure WebRTC video calling application built with Next.js, Socket.io,
 
 ## Notes
 
--   This application uses public STUN servers (`stun:stun.l.google.com:19302`) for NAT traversal. For more robust connections, especially behind restrictive firewalls, TURN servers might be required.
+-   This application uses public STUN servers (`stun:stun.l.google.com:19302`) for NAT traversal. Mobile clients can fetch TURN-only details from `/api/webrtc-config`.
 -   The Socket.IO server is integrated into Next.js using the Pages Router API (`src/pages/api/socketio.ts`).
 -   Error handling and UI are basic. For production, consider more comprehensive error management and UI/UX improvements.
 -   JWT refresh token logic is implemented in the middleware and `/api/refresh` endpoint to maintain user sessions.
 -   WebSocket authentication ensures only logged-in users can connect to the signaling server.
 -   Toast notifications provide feedback for actions like login, WebSocket connection status, and user joining/leaving rooms.
+-   Audit logs are written to `logs/events.log` via the `logEvent` helper.
+-   Uploaded files are saved under `uploads/` and served at `/uploads/<filename>`.
 
 Enjoy your secure video calling experience!
