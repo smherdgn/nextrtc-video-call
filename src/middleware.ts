@@ -35,10 +35,28 @@ async function verifyToken(token: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  // Enforce HTTPS in production deployments
+  if (
+    process.env.NODE_ENV === "production" &&
+    request.headers.get("x-forwarded-proto") !== "https"
+  ) {
+    const url = request.nextUrl
+    url.protocol = "https:"
+    return NextResponse.redirect(url, 308)
+  }
   const { pathname } = request.nextUrl;
   const response = NextResponse.next();
 
-  const publicPaths = ["/login", "/api/login", "/api/refresh", "/api/socketio"];
+  const publicPaths = [
+    "/login",
+    "/api/login",
+    "/api/refresh",
+    "/api/socketio",
+    "/api/consent",
+    "/api/version",
+    "/api/webrtc-config",
+    "/api/health",
+  ];
   const isAdminPath =
     pathname.startsWith("/admin") || pathname.startsWith("/api/admin");
   const isPublicPath =
