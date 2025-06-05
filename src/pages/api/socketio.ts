@@ -4,6 +4,8 @@ import type { Server as HTTPServer } from "http";
 import { parse as parseCookie } from "cookie";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET, ACCESS_TOKEN_NAME } from "@/lib/authUtils";
+import { isRateLimited } from "@/lib/rateLimiter";
+import { logEvent } from "@/lib/logEvent";
 import type {
   User,
   SocketOfferData,
@@ -40,26 +42,32 @@ export default function socketIOHandler(res: NextApiResponseWithSocket) {
       path: SOCKET_PATH,
       addTrailingSlash: false,
       cors: {
-        origin: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+        origin: [
+          process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
+          "https://your-mobile-app.com",
+        ],
         methods: ["GET", "POST"],
         credentials: true,
       },
     });
 
     io.use((socket: Socket, next) => {
-      const cookies = socket.handshake.headers.cookie;
       const socketId = socket.id;
-      if (!cookies) {
-        logger.auth("Socket Auth Failed: No cookies", {
-          socket_id: socketId,
-          source: "SERVER_SOCKET",
-          message: null,
-        });
-        return next(new Error("Authentication error: No cookies provided."));
+      const ip = socket.handshake.address;
+      if (isRateLimited(ip, 20, 60_000)) {
+        logEvent('socket-rate-limit', { ip });
+        return next(new Error('Rate limit exceeded'));
       }
 
-      const parsedCookies = parseCookie(cookies);
-      const token = parsedCookies[ACCESS_TOKEN_NAME];
+      const authToken = socket.handshake.auth?.token as string | undefined;
+      let token = authToken;
+      if (!token) {
+        const cookies = socket.handshake.headers.cookie;
+        if (cookies) {
+          const parsedCookies = parseCookie(cookies);
+          token = parsedCookies[ACCESS_TOKEN_NAME];
+        }
+      }
 
       if (!token) {
         logger.auth("Socket Auth Failed: No access token", {
@@ -208,6 +216,31 @@ export default function socketIOHandler(res: NextApiResponseWithSocket) {
             message: null,
           }
         );
+      });
+
+      socket.on("chat-message", (msg: { message: string; timestamp: number }) => {
+        const roomIdArray = Array.from(socket.rooms);
+        const currentRoom = roomIdArray.find((r) => r !== socket.id);
+        if (currentRoom) {
+          socket.to(currentRoom).emit("chat-message", {
+            userId: user.userId,
+            message: msg.message,
+            timestamp: msg.timestamp,
+          });
+        }
+      });
+
+      socket.on("file-meta", (data: any) => {
+        const roomIdArray = Array.from(socket.rooms);
+        const currentRoom = roomIdArray.find((r) => r !== socket.id);
+        if (currentRoom) {
+          socket.to(currentRoom).emit("file-meta", data);
+        }
+      });
+
+      socket.on("reconnect", (roomId: string) => {
+        socket.join(roomId);
+        socket.to(roomId).emit("reconnect", { userId: socket.id });
       });
 
       socket.on("end-call", (data: { toUserId?: string }) => {

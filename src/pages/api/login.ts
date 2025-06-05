@@ -9,6 +9,8 @@ import {
   REFRESH_TOKEN_EXPIRY,
 } from "@/lib/authUtils";
 import { logger } from "@/lib/logger";
+import { isRateLimited } from "@/lib/rateLimiter";
+import { logEvent } from "@/lib/logEvent";
 
 // Dummy user for demonstration
 const DEMO_USER_EMAIL = "user@example.com";
@@ -24,6 +26,12 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
       message: "Method Not Allowed",
     });
     return res.status(405).json({ message: "Method Not Allowed" });
+  }
+
+  const ip = (req.headers["x-forwarded-for"] || req.socket.remoteAddress) as string;
+  if (isRateLimited(`login:${ip}`, 5, 60_000)) {
+    logEvent('login-rate-limit', { ip });
+    return res.status(429).json({ message: 'Too many attempts' });
   }
 
   const { email, password } = req.body;
