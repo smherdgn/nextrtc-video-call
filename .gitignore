@@ -1,64 +1,92 @@
-# -----------------
-# Node & npm
-# -----------------
+# Node modules
 node_modules/
+
+# Logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-package-lock.json
-pnpm-lock.yaml
+pnpm-debug.log*
 
-# -----------------
-# Next.js
-# -----------------
+# Build output
 .next/
 out/
-.vercel/
-
-# -----------------
-# TypeScript
-# -----------------
-*.tsbuildinfo
-
-# -----------------
-# Env
-# -----------------
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-
-# -----------------
-# OS / Editor
-# -----------------
-.DS_Store
-Thumbs.db
-*.swp
-.idea/
-.vscode/
-*.log
-
-# -----------------
-# Supabase
-# -----------------
-.supabase/
-supabase/.temp/
-supabase/migrations/*.sql
-
-# -----------------
-# Testing / Coverage
-# -----------------
-coverage/
-*.lcov
-
-# -----------------
-# Build artifacts
-# -----------------
 dist/
 build/
 
-# -----------------
-# Optional - if using TurboRepo or monorepo tools
-# -----------------
-.turbo/
+# TypeScript
+*.tsbuildinfo
+
+# Env files
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# OS generated
+.DS_Store
+Thumbs.db
+Icon?
+ehthumbs.db
+Desktop.ini
+
+# IDE/editor
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Coverage
+coverage/
+*.lcov
+.nyc_output/
+
+# Testing
+jest.config.js
+jest.config.ts
+__tests__/
+__mocks__/
+test-results/
+
+# Supabase
+.supabase/
+.supabase/config.toml
+.supabase/functions/.netlify/
+
+# Firebase / GCP (opsiyonel)
+.firebase/
+.firebaserc
+
+# React Native (opsiyonel)
+android/
+ios/
+*.keystore
+*.jks
+*.hprof
+*.lock
+*.xcworkspace
+*.xcuserdata/
+*.xcodeproj/
+
+# Mac-specific
+*.DS_Store
+
+# Linux-specific
+*~
+
+# Windows-specific
+*.log
+*.tmp
+*.bak
+
+# Misc
+npm-debug.log*
+*.swp
+*.swo
+
+# Next.js Static Export
+export/
+
+# Optional lock files
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
