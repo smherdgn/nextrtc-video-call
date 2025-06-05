@@ -35,6 +35,15 @@ async function verifyToken(token: string) {
 }
 
 export async function middleware(request: NextRequest) {
+  // Enforce HTTPS in production deployments
+  if (
+    process.env.NODE_ENV === "production" &&
+    request.headers.get("x-forwarded-proto") !== "https"
+  ) {
+    const url = request.nextUrl
+    url.protocol = "https:"
+    return NextResponse.redirect(url, 308)
+  }
   const { pathname } = request.nextUrl;
   const response = NextResponse.next();
 
