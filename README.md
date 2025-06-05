@@ -56,6 +56,14 @@ This is a secure WebRTC video calling application built with Next.js, Socket.io,
 - `.env.example`: Example environment variables
 - `tailwind.config.js`, `postcss.config.js`: Tailwind CSS configuration
 
+## API Endpoints
+
+- `POST /api/consent` – record user consent flags with hashed user ID and IP
+- `GET /api/webrtc-config` – return TURN-only ICE server details
+- `GET /api/version` – return the latest mobile app version
+- `GET /api/health` – simple health check for uptime monitoring
+- `POST /api/upload` – authenticated file uploads (PDF, PNG, JPEG) stored in `uploads/`
+
 ## Setup and Installation
 
 1.  **Clone the repository (or extract the provided files).**
@@ -126,5 +134,6 @@ This is a secure WebRTC video calling application built with Next.js, Socket.io,
 -   WebSocket authentication ensures only logged-in users can connect to the signaling server.
 -   Toast notifications provide feedback for actions like login, WebSocket connection status, and user joining/leaving rooms.
 -   Audit logs are written to `logs/events.log` via the `logEvent` helper.
+-   Uploaded files are saved under `uploads/` and served at `/uploads/<filename>`.
 
 Enjoy your secure video calling experience!
