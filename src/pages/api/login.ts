@@ -13,10 +13,11 @@ import { logger } from "@/lib/logger";
 import { isRateLimited } from "@/lib/rateLimiter";
 import { logEvent } from "@/lib/logEvent";
 
-// Dummy user for demonstration
+ // Dummy user for demonstration
 const DEMO_USER_EMAIL = "user@example.com";
 const DEMO_USER_PASSWORD = "password123";
 const ADMIN_USER_PASSWORD = "adminpassword123"; // Separate admin password for demo
+ 
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {
@@ -36,9 +37,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const { email, password } = req.body;
 
+ 
+ 
+  const DEMO_USER_EMAIL =
+    (await getConfigValue('demo_user_email')) || 'user@example.com';
+  const DEMO_USER_PASSWORD =
+    (await getConfigValue('demo_user_password')) || 'password123';
   const ADMIN_USER_EMAIL =
     (await getConfigValue('admin_email')) || 'admin@example.com';
-
+  const ADMIN_USER_PASSWORD =
+    (await getConfigValue('admin_password')) || 'adminpassword123';
+ 
   let userPayload;
   let loginSuccess = false;
 

@@ -20,3 +20,12 @@ export async function getConfigValue(key: string): Promise<string | null> {
   cache[key] = value;
   return value;
 }
+ 
+export async function setConfigValue(key: string, value: string): Promise<void> {
+  const { error } = await supabase.from('app_config').upsert({ key, value });
+  if (error) {
+    throw new Error(`Failed to set config ${key}: ${error.message}`);
+  }
+  cache[key] = value;
+}
+ 
