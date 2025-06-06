@@ -23,3 +23,19 @@ CREATE INDEX IF NOT EXISTS app_logs_log_type_idx ON public.app_logs (log_type);
 CREATE INDEX IF NOT EXISTS app_logs_user_email_idx ON public.app_logs (user_email);
 CREATE INDEX IF NOT EXISTS app_logs_room_id_idx ON public.app_logs (room_id);
 CREATE INDEX IF NOT EXISTS app_logs_source_idx ON public.app_logs (source);
+ 
+-- Table: app_config
+CREATE TABLE IF NOT EXISTS public.app_config (
+    key text PRIMARY KEY,
+    value text NOT NULL
+);
+
+-- Example row for admin email (update as needed)
+-- INSERT INTO public.app_config(key, value) VALUES ('admin_email', 'admin@example.com');
+-- Example row for admin password (update as needed)
+-- INSERT INTO public.app_config(key, value) VALUES ('admin_password', 'adminpassword123');
+-- Example row for demo user email/password
+-- INSERT INTO public.app_config(key, value) VALUES ('demo_user_email', 'user@example.com');
+-- INSERT INTO public.app_config(key, value) VALUES ('demo_user_password', 'password123');
+
+ 

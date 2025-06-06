@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose"; // Using jose for edge-compatible JWT verification
 // Removed unused logger import
+import { getConfigValue } from "@/lib/config";
 
 const JWT_SECRET_STRING = process.env.JWT_SECRET || "";
 const JWT_SECRET = JWT_SECRET_STRING
@@ -9,7 +10,7 @@ const JWT_SECRET = JWT_SECRET_STRING
   : undefined;
 const ACCESS_TOKEN_NAME = "accessToken";
 const REFRESH_TOKEN_NAME = "refreshToken";
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
+let cachedAdminEmail: string | null = null;
 
 async function verifyToken(token: string) {
   if (!JWT_SECRET) {
@@ -46,6 +47,10 @@ export async function middleware(request: NextRequest) {
   }
   const { pathname } = request.nextUrl;
   const response = NextResponse.next();
+
+  if (!cachedAdminEmail) {
+    cachedAdminEmail = (await getConfigValue('admin_email')) || '';
+  }
 
   const publicPaths = [
     "/login",
@@ -90,7 +95,7 @@ export async function middleware(request: NextRequest) {
         new URL(`/login?redirect=${pathname}`, request.url)
       );
     }
-    if (adminPayload.email !== ADMIN_EMAIL || !ADMIN_EMAIL) {
+    if (adminPayload.email !== cachedAdminEmail || !cachedAdminEmail) {
       // logger.auth('Admin path access denied: User not admin.', { source: 'MIDDLEWARE', room_id: pathname, user_email: adminPayload.email });
       // Optionally redirect to a generic 'unauthorized' page or home
       return NextResponse.redirect(new URL("/room-entry", request.url)); // Or an 'unauthorized' page

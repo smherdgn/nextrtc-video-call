@@ -26,38 +26,58 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const ADMIN_EMAIL = process.env.NEXT_PUBLIC_ADMIN_EMAIL || "";
+
+const ADMIN_CONFIG_KEY = "admin_email";
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
+  const [adminEmail, setAdminEmail] = useState<string>("");
   const router = useRouter();
 
-  const decodeAndSetUser = useCallback((token: string) => {
-    try {
-      const decodedToken = jwtDecode<DecodedToken>(token);
-      const currentUser = {
-        userId: decodedToken.userId,
-        email: decodedToken.email,
-      };
-      setUser(currentUser);
-      setIsAuthenticated(true);
-      if (ADMIN_EMAIL && currentUser.email === ADMIN_EMAIL) {
-        setIsAdmin(true);
-      } else {
-        setIsAdmin(false);
+  useEffect(() => {
+    async function loadAdminEmail() {
+      try {
+        const res = await fetch(`/api/config?key=${ADMIN_CONFIG_KEY}`);
+        if (res.ok) {
+          const data = await res.json();
+          setAdminEmail(data.value || "");
+        }
+      } catch (e) {
+        console.error("Failed to load admin email", e);
       }
-      return currentUser;
-    } catch (error) {
-      console.error("Failed to decode token:", error);
-      setUser(null);
-      setIsAuthenticated(false);
-      setIsAdmin(false);
-      return null;
     }
+    loadAdminEmail();
   }, []);
+
+  const decodeAndSetUser = useCallback(
+    (token: string) => {
+      try {
+        const decodedToken = jwtDecode<DecodedToken>(token);
+        const currentUser = {
+          userId: decodedToken.userId,
+          email: decodedToken.email,
+        };
+        setUser(currentUser);
+        setIsAuthenticated(true);
+        if (adminEmail && currentUser.email === adminEmail) {
+          setIsAdmin(true);
+        } else {
+          setIsAdmin(false);
+        }
+        return currentUser;
+      } catch (error) {
+        console.error("Failed to decode token:", error);
+        setUser(null);
+        setIsAuthenticated(false);
+        setIsAdmin(false);
+        return null;
+      }
+    },
+    [adminEmail]
+  );
 
   const checkAuth = useCallback(async () => {
     setIsLoading(true);
@@ -76,6 +96,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     checkAuth();
   }, [checkAuth]);
 
+  useEffect(() => {
+    const token = Cookies.get(ACCESS_TOKEN_NAME);
+    if (token && adminEmail) {
+      decodeAndSetUser(token);
+    }
+  }, [adminEmail, decodeAndSetUser]);
+
   const login = (accessToken: string, refreshToken: string) => {
     Cookies.set(ACCESS_TOKEN_NAME, accessToken, {
       path: "/",
@@ -88,7 +115,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       secure: process.env.NODE_ENV === "production",
     });
     const loggedInUser = decodeAndSetUser(accessToken);
-    if (loggedInUser && ADMIN_EMAIL && loggedInUser.email === ADMIN_EMAIL) {
+    if (loggedInUser && adminEmail && loggedInUser.email === adminEmail) {
       router.push("/admin/dashboard"); // Redirect admin to dashboard
     } else {
       router.push("/room-entry");
