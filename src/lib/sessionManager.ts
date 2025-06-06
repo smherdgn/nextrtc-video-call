@@ -1,38 +1,34 @@
-export type SessionStatus = 'connected' | 'signaling' | 'in-call' | 'left';
-
-export interface Session {
+export type UserSession = {
   userId: string;
   socketId: string;
-  roomId?: string;
-  status: SessionStatus;
+  roomId: string;
+  status: 'connected' | 'signaling' | 'in-call' | 'left';
+  joinedAt: number;
+};
+
+const store = new Map<string, UserSession>();
+
+export function setUserSession(userId: string, session: UserSession): void {
+  store.set(userId, session);
 }
 
-const sessions = new Map<string, Session>();
-
-export function addSession(userId: string, socketId: string): Session {
-  const session: Session = { userId, socketId, status: 'connected' };
-  sessions.set(socketId, session);
-  return session;
+export function getUserSession(userId: string): UserSession | undefined {
+  return store.get(userId);
 }
 
-export function updateSession(
-  socketId: string,
-  updates: Partial<Omit<Session, 'socketId' | 'userId'>>
-): Session | undefined {
-  const session = sessions.get(socketId);
-  if (!session) return undefined;
-  Object.assign(session, updates);
-  return session;
+export function getAllSessions(): UserSession[] {
+  return Array.from(store.values());
 }
 
-export function removeSession(socketId: string): void {
-  sessions.delete(socketId);
+export function removeSessionBySocket(socketId: string): void {
+  for (const [uid, session] of store) {
+    if (session.socketId === socketId) {
+      store.delete(uid);
+      break;
+    }
+  }
 }
 
-export function getSession(socketId: string): Session | undefined {
-  return sessions.get(socketId);
-}
-
-export function getAllSessions(): Session[] {
-  return Array.from(sessions.values());
+export function findSessionsByRoom(roomId: string): UserSession[] {
+  return Array.from(store.values()).filter((s) => s.roomId === roomId);
 }
