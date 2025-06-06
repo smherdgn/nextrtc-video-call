@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next';
+ 
 import { getConfigValue, setConfigValue } from '@/lib/config';
 import { JWT_SECRET } from '@/lib/authUtils';
 import jwt from 'jsonwebtoken';
@@ -37,4 +37,4 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   }
   return res.status(405).json({ message: 'Method Not Allowed' });
-}
+ }

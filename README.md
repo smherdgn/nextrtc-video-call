@@ -93,7 +93,8 @@ This is a secure WebRTC video calling application built with Next.js, Socket.io,
     SENTRY_DSN=""                        # Optional error reporting
     ```
     Replace `"your-super-secure-and-long-jwt-secret-key-at-least-32-characters"` with a strong, unique secret key.
-    The admin email, admin password, and demo user credentials are stored in the Supabase table `app_config` under the keys `admin_email`, `admin_password`, `demo_user_email`, and `demo_user_password`.
+     The admin email used for the dashboard is stored in the Supabase table `app_config` under the key `admin_email`.
+ 
 
 ## Running the Application
 

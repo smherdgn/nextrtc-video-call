@@ -32,6 +32,7 @@ CREATE TABLE IF NOT EXISTS public.app_config (
 
 -- Example row for admin email (update as needed)
 -- INSERT INTO public.app_config(key, value) VALUES ('admin_email', 'admin@example.com');
+ 
 -- Example row for admin password (update as needed)
 -- INSERT INTO public.app_config(key, value) VALUES ('admin_password', 'adminpassword123');
 -- Example row for demo user email/password
