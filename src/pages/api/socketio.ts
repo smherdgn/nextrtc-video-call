@@ -14,6 +14,13 @@ import type {
   SocketWebRTCStateData,
 } from "@/types";
 import { logger } from "@/lib/logger";
+import {
+  addSession,
+  updateSession,
+  removeSession,
+  getSession,
+  getAllSessions,
+} from "@/lib/sessionManager";
 
 interface NextApiResponseWithSocket extends NextApiResponse {
   socket: NextApiRequest["socket"] & {
@@ -138,9 +145,13 @@ export default function socketIOHandler(res: NextApiResponseWithSocket) {
         socket_id: socket.id,
         message: null,
       });
+      addSession(user.userId, socket.id);
+      io.emit("status-update", getAllSessions());
 
-      socket.on("join-room", (roomId: string) => {
+      socket.on("join-room", ({ roomId }) => {
         socket.join(roomId);
+        updateSession(socket.id, { roomId, status: "signaling" });
+        io.emit("status-update", getAllSessions());
         logger.roomEvent("SERVER_SOCKET", `User joined room`, {
           user_email: user.email,
           user_id_from_jwt: user.userId,
@@ -151,6 +162,11 @@ export default function socketIOHandler(res: NextApiResponseWithSocket) {
         socket
           .to(roomId)
           .emit("user-joined", { userId: socket.id, email: user.email });
+      });
+
+      socket.on("start-call", () => {
+        updateSession(socket.id, { status: "in-call" });
+        io.emit("status-update", getAllSessions());
       });
 
       socket.on("offer", (data: SocketOfferData) => {
@@ -292,6 +308,12 @@ export default function socketIOHandler(res: NextApiResponseWithSocket) {
 
       socket.on("disconnect", () => {
         const disconnectedUser = (socket as AuthenticatedSocket).user;
+        const session = getSession(socket.id);
+        if (session?.roomId) {
+          socket.to(session.roomId).emit("user-disconnected", { userId: socket.id });
+        }
+        removeSession(socket.id);
+        io.emit("status-update", getAllSessions());
         logger.info("SERVER_SOCKET", `User disconnected`, {
           user_email: disconnectedUser?.email,
           user_id_from_jwt: disconnectedUser?.userId,
