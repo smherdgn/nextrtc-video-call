@@ -5,8 +5,9 @@ import type { LogEntry } from "@/types";
 import jwt from "jsonwebtoken";
 import { JWT_SECRET } from "@/lib/authUtils"; // Assuming JWT_SECRET is exported from authUtils
 import type { User } from "@/types";
+import { getConfigValue } from "@/lib/config";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "";
+let cachedAdminEmail: string | null = null;
 
 export default async function handler(
   req: NextApiRequest,
@@ -14,6 +15,10 @@ export default async function handler(
 ) {
   if (req.method !== "GET") {
     return res.status(405).json({ message: "Method Not Allowed" });
+  }
+
+  if (!cachedAdminEmail) {
+    cachedAdminEmail = (await getConfigValue('admin_email')) || '';
   }
 
   // Verify admin
@@ -31,7 +36,7 @@ export default async function handler(
       iat: number;
       exp: number;
     };
-    if (decoded.email !== ADMIN_EMAIL || !ADMIN_EMAIL) {
+    if (decoded.email !== cachedAdminEmail || !cachedAdminEmail) {
       logger.adminAccess("Admin logs access denied: Not admin", {
         user_email: decoded.email,
         user_id_from_jwt: decoded.userId,

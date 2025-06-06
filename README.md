@@ -87,13 +87,13 @@ This is a secure WebRTC video calling application built with Next.js, Socket.io,
     JWT_SECRET="your-super-secure-and-long-jwt-secret-key-at-least-32-characters"
     NEXT_PUBLIC_APP_URL="http://localhost:3000" # Your local development URL
     NEXT_PUBLIC_SOCKET_PATH="/api/socketio" # Should match server setup
-    NEXT_PUBLIC_ADMIN_EMAIL=""           # Optional admin UI access
     NEXT_PUBLIC_SUPABASE_URL=""         # Optional Supabase logging
     NEXT_PUBLIC_SUPABASE_ANON_KEY=""
     SUPABASE_SERVICE_ROLE_KEY=""
     SENTRY_DSN=""                        # Optional error reporting
     ```
     Replace `"your-super-secure-and-long-jwt-secret-key-at-least-32-characters"` with a strong, unique secret key.
+    The admin email, admin password, and demo user credentials are stored in the Supabase table `app_config` under the keys `admin_email`, `admin_password`, `demo_user_email`, and `demo_user_password`.
 
 ## Running the Application
 
